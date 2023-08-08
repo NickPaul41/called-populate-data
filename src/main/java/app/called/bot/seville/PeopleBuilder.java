@@ -24,8 +24,29 @@ public class PeopleBuilder {
     private final Map<Integer, Person> personMap = new HashMap<>();
 
     public void createPeople() {
+        populateKeycloak(getPeopleFromCSV("src/main/resources/people.csv"));
+        //populateSeville(getPeopleFromCSV("src/main/resources/people.csv"));
+    }
 
-        populateSeville(getPeopleFromCSV("src/main/resources/people.csv"));
+    void populateKeycloak(List<Person> people){
+        for(Person p: people){
+            UserRepresentation user = keycloakUserClient.getUserByEmail(p.getPrimaryEmail().getEmail());
+            if(user == null){
+                LOG.info("Creating person in Keycloak: " + p.getPrimaryEmail().getEmail());
+                UserRepresentation newUser = new UserRepresentation();
+                newUser.setEmailVerified(true);
+                newUser.setEnabled(true);
+                newUser.setEmail(p.getPrimaryEmail().getEmail());
+                newUser.setFirstName(p.getFirstName());
+                newUser.setLastName(p.getLastName());
+
+                keycloakUserClient.addUser(newUser);
+            }
+            Person person = personClient.getByEmail(p.getPrimaryEmail().getEmail());
+            if(person != null)
+                personMap.put(person.getId(), person);
+            LOG.info("Person Found: " + p.getPrimaryEmail().getEmail());
+        }
     }
 
     void populateSeville(List<Person> people){
